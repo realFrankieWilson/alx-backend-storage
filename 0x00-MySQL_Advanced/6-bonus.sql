@@ -8,7 +8,7 @@ CREATE PROCEDURE AddBonus(
   IN score INTERGER
 )
 BEGIN
-  INSERT INTO project(name)
+  INSERT INTO projects(name)
   SELECT project_name FROM DUAL
   WHERE NOT EXISTS(SELECT * FROM projects WHERE name = project_name LIMIT 1);
 
