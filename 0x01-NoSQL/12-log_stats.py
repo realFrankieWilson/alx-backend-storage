@@ -27,22 +27,10 @@ print("Methods:")
 
 # Counts the document for each HTTP mehtod
 methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
-status_checked = 0
 for methd in methods:
     count = collection.count_documents({"method": methd})
 
-    status_checked += 1
-
-    if methd == "GET":
-        print(f"\tmethod GET: {count}")
-    elif methd == "POST":
-        print(f"\tmethod POST: {count}")
-    elif methd == "PUT":
-        print(f"\tmethod PUT: {count}")
-    elif methd == "PATCH":
-        print(f"\tmethod PATCH: {count}")
-    else:
-        print(f"\tmethod DELETE: {count}")
+    print(f"\tmethod {methd}: {count}")
 
 
 # Counts documents with the GET method and path=/status
