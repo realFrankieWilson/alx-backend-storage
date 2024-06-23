@@ -27,8 +27,11 @@ print("Methods:")
 
 # Counts the document for each HTTP mehtod
 methods = ["GET", "POST", "PUT", "PATCH", "DELETE"]
+status_checked = 0
 for methd in methods:
     count = collection.count_documents({"method": methd})
+
+    status_checked += 1
 
     if methd == "GET":
         print(f"\tmethod GET: {count}")
@@ -41,10 +44,10 @@ for methd in methods:
     else:
         print(f"\tmethod DELETE: {count}")
 
-    # print(f"\tmethod {count}")
 
 # Counts documents with the GET method and path=/status
 count = collection.count_documents({"method": "GET", "path": "/status"})
+print(f"{count} status check")
 
 # Close connection to MongoDB
 client.close()
