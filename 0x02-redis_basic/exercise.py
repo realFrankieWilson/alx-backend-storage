@@ -8,6 +8,20 @@ private variable.
 import redis
 import uuid
 from typing import Callable, Optional, Union
+from functools import wraps
+
+
+def count_calls(method: Callable) -> Callable:
+    """A count call method that defines a decorator"""
+
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        """A method that returns a Callable"""
+        key = f"{self.__class__.__qualname__}.{method.__qualname__}"
+        self._redis.incr(key)
+        return method(self, *args, **kwargs)
+
+    return wrapper
 
 
 class Cache:
@@ -20,7 +34,8 @@ class Cache:
         """The init method with redis instance and flushdb"""
         self._redis = redis.Redis()
         self._redis.flushdb()
-
+    
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """A method that takes in data argument and
         returns a string.
@@ -32,8 +47,7 @@ class Cache:
             self._redis.set(key, data)
         return key
 
-    def get(self, key: str, fn:
-            Optional[Callable[[bytes], any]] = None) -> any:
+    def get(self, key: str, fn: Optional[Callable[[bytes], any]] = None) -> any:
         """A method that convert data back to desired format"""
 
         data = self._redis.get(key)
