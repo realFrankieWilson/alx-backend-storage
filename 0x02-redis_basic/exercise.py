@@ -11,15 +11,18 @@ from typing import Callable, Optional, Union
 from functools import wraps
 
 
-def count_calls(method: Callable) -> Callable:
-    """A count call method that defines a decorator"""
+def call_history(method: Callable) -> Callable:
+    """A decorator that stores the history of inputs and outputs for a function"""
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         """A method that returns a Callable"""
-        key = f"{self.__class__.__name__}.{method.__name__}"
-        self._redis.incr(key)
-        return method(self, *args, **kwargs)
+        input_key = f"{method.__qualname__}:inputs"
+        output_key = f"{method.__qualname__}:outputs"
+        self._redis.rpush(input_key, str(args))
+        output = method(self, *args, **kwargs)
+        self._redis.rpush(output_key, str(output))
+        return output
 
     return wrapper
 
@@ -35,7 +38,7 @@ class Cache:
         self._redis = redis.Redis()
         self._redis.flushdb()
 
-    @count_calls
+    @call_history
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """A method that takes in data argument and
         returns a string.
@@ -47,22 +50,8 @@ class Cache:
             self._redis.set(key, str(data).encode("utf-8"))
         return key
 
-    def get(self, key: str, fn: Optional[Callable[[bytes], any
-                                                  ]] = None) -> any:
+    def get(self, key: str) -> Optional[bytes]:
         """A method that convert data back to desired format"""
 
-        data = self._redis.get(key)
-        if data is None:
-            return None
-        if fn is None:
-            return data.decode("utf-8")
-        return fn(data)
+        return self._redis.get(key)
 
-    def get_str(self, key: str) -> str:
-        """Automatically parametrize Cache.get"""
-
-        return self.get(key, lambda d: d.decode("utf-8"))
-
-    def get_int(self, key: str) -> int:
-        """Automatically parametrize Cache.get"""
-        return self.get(key, int)
