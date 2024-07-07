@@ -1,83 +1,68 @@
 #!/usr/bin/env python3
-'''Redis data management example.
-'''
+"""
+`Module exercise`
+Provide a class for storing redis instance client as a
+private variable.
+"""
+
 import redis
 import uuid
-from typing import Any, Callable, Union
+from typing import Callable, Optional, Union
 from functools import wraps
 
 
-def track_calls(method: Callable) -> Callable:
-    '''Decorator to track the number of calls to a method.
-    '''
+def count_calls(method: Callable) -> Callable:
+    """A count call method that defines a decorator"""
+
     @wraps(method)
-    def wrapped(self, *args, **kwargs) -> Any:
-        '''Increment call count each time the method is invoked.'''
-        self._redis.incr(method.__name__)
+    def wrapper(self, *args, **kwargs):
+        """A method that returns a Callable"""
+        key = f"{self.__class__.__name__}.{method.__name__}"
+        self._redis.incr(key)
         return method(self, *args, **kwargs)
-    return wrapped
+
+    return wrapper
 
 
-def log_history(method: Callable) -> Callable:
-    '''Decorator to log the call history of a method.
-    '''
-    @wraps(method)
-    def wrapped(self, *args, **kwargs) -> Any:
-        '''Log input and output of each method call.'''
-        input_key = '{}:inputs'.format(method.__name__)
-        output_key = '{}:outputs'.format(method.__name__)
-        self._redis.rpush(input_key, str(args))
-        result = method(self, *args, **kwargs)
-        self._redis.rpush(output_key, str(result))
-        return result
-    return wrapped
+class Cache:
+    """
+    A class that with an __init__ method that store
+    an instance of the Redis client as a private variable name
+    """
 
-
-def show_history(func: Callable) -> None:
-    '''Function to print the call history of a method.
-    '''
-    storage = redis.Redis()
-    input_key = '{}:inputs'.format(func.__name__)
-    output_key = '{}:outputs'.format(func.__name__)
-    inputs = storage.lrange(input_key, 0, -1)
-    outputs = storage.lrange(output_key, 0, -1)
-    history = [(i.decode("utf-8"), o.decode("utf-8")) for i, o in zip(inputs, outputs)]
-    print('{} was called {} times:'.format(func.__name__, len(history)))
-    for inp, out in history:
-        print('{}(*{}) -> {}'.format(func.__name__, inp, out))
-
-
-class DataCache:
-    '''Class to handle caching of data in Redis.
-    '''
     def __init__(self) -> None:
-        '''Initialize Redis connection and clear database.'''
+        """The init method with redis instance and flushdb"""
         self._redis = redis.Redis()
         self._redis.flushdb()
 
-    @log_history
-    @track_calls
-    def save(self, item: Union[str, bytes, int, float]) -> str:
-        '''Save an item in Redis under a unique key and return the key.'''
-        unique_key = str(uuid.uuid4())
-        self._redis.set(unique_key, item)
-        return unique_key
+    @count_calls
+    def store(self, data: Union[str, bytes, int, float]) -> str:
+        """A method that takes in data argument and
+        returns a string.
+        """
+        key = str(uuid.uuid4())
+        if isinstance(data, str):
+            self._redis.set(key, data.encode("utf-8"))
+        else:
+            self._redis.set(key, str(data).encode("utf-8"))
+        return key
 
-    def retrieve(
-            self,
-            key: str,
-            converter: Callable = None,
-            ) -> Union[str, bytes, int, float]:
-        '''Retrieve and convert data from Redis.'''
+    def get(self, key: str, fn: Optional[Callable[[bytes], any
+                                                  ]] = None) -> any:
+        """A method that convert data back to desired format"""
+
         data = self._redis.get(key)
-        if converter:
-            data = converter(data)
-        return data
+        if data is None:
+            return None
+        if fn is None:
+            return data.decode("utf-8")
+        return fn(data)
 
-    def retrieve_str(self, key: str) -> str:
-        '''Convert retrieved Redis data to string.'''
-        return self.retrieve(key, lambda x: x.decode('utf-8'))
+    def get_str(self, key: str) -> str:
+        """Automatically parametrize Cache.get"""
 
-    def retrieve_int(self, key: str) -> int:
-        '''Convert retrieved Redis data to integer.'''
-        return self.retrieve(key, lambda x: int(x))
+        return self.get(key, lambda d: d.decode("utf-8"))
+
+    def get_int(self, key: str) -> int:
+        """Automatically parametrize Cache.get"""
+        return self.get(key, int)
