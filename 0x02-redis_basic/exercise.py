@@ -12,7 +12,8 @@ from functools import wraps
 
 
 def call_history(method: Callable) -> Callable:
-    """A decorator that stores the history of inputs and outputs for a function"""
+    """A decorator that stores the history of inputs and outputs for a
+    function"""
 
     @wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -55,3 +56,20 @@ class Cache:
 
         return self._redis.get(key)
 
+    def replay(self, method: Callable) -> None:
+        """
+        Displays the history of calls to a particular method
+        """
+        input_key = f"{method.__qualname__}:inputs"
+        output_key = f"{method.__qualname__}:outputs"
+        inputs = self._redis.lrange(input_key, 0, -1)
+        outputs = self._redis.lrange(output_key, 0, -1)
+
+        print(f"{method.__qualname__} was called {len(inputs)} times:")
+        for i, (inp, out) in enumerate(zip(inputs, outputs), -1):
+            print(
+                "{}(*{}) -> {}".format(
+                    method.__qualname__, inp.decode("utf-8"),
+                    out.decode("utf-8")
+                )
+            )
