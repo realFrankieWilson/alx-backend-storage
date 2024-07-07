@@ -34,7 +34,7 @@ class Cache:
         """The init method with redis instance and flushdb"""
         self._redis = redis.Redis()
         self._redis.flushdb()
-    
+
     @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """A method that takes in data argument and
@@ -47,7 +47,8 @@ class Cache:
             self._redis.set(key, data)
         return key
 
-    def get(self, key: str, fn: Optional[Callable[[bytes], any]] = None) -> any:
+    def get(self, key: str, fn: Optional[Callable
+                                         [[bytes], any]] = None) -> any:
         """A method that convert data back to desired format"""
 
         data = self._redis.get(key)
