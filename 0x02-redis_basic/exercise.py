@@ -17,7 +17,7 @@ def count_calls(method: Callable) -> Callable:
     @wraps(method)
     def wrapper(self, *args, **kwargs):
         """A method that returns a Callable"""
-        key = f"{self.__class__.__qualname__}.{method.__qualname__}"
+        key = f"{self.__class__.__name__}.{method.__name__}"
         self._redis.incr(key)
         return method(self, *args, **kwargs)
 
@@ -30,7 +30,7 @@ class Cache:
     an instance of the Redis client as a private variable name
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """The init method with redis instance and flushdb"""
         self._redis = redis.Redis()
         self._redis.flushdb()
@@ -44,18 +44,18 @@ class Cache:
         if isinstance(data, str):
             self._redis.set(key, data.encode("utf-8"))
         else:
-            self._redis.set(key, data)
+            self._redis.set(key, str(data).encode("utf-8"))
         return key
 
-    def get(self, key: str, fn: Optional[Callable
-                                         [[bytes], any]] = None) -> any:
+    def get(self, key: str, fn: Optional[Callable[[bytes], any
+                                                  ]] = None) -> any:
         """A method that convert data back to desired format"""
 
         data = self._redis.get(key)
         if data is None:
             return None
         if fn is None:
-            return data
+            return data.decode("utf-8")
         return fn(data)
 
     def get_str(self, key: str) -> str:
